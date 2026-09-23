@@ -98,6 +98,32 @@
   color: var(--text);
 }
 
+/* Progress dots make a multi-step walkthrough feel finite — the operator can see how much
+   is left without reading the counter. */
+.guide-tip__dots {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--s3);
+}
+
+.guide-tip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+}
+
+.guide-tip__dot[data-done="true"] {
+  background: var(--accent-deep);
+  box-shadow: none;
+}
+
+.guide-tip__dot[data-now="true"] {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .guide-tip__foot {
   display: flex;
   align-items: center;

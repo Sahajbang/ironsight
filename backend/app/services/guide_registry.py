@@ -11,16 +11,42 @@ ALLOWED_ACTIONS = {"navigate", "scroll", "highlight", "explain", "tooltip"}
 RESTRICTED_ACTIONS = {"submit", "acknowledge", "confirm", "change_threshold", "machine_control", "click"}
 
 GUIDE_TARGETS: dict[str, dict] = {
+    # --- navigation rail: answers "where is X?" ---
+    "nav-dashboard": {"route": "/", "purpose": "Dashboard tab in the left navigation rail.", "preconditions": []},
+    "nav-site": {"route": "/site", "purpose": "Live Site tab in the left navigation rail.", "preconditions": []},
+    "nav-tasks": {"route": "/tasks", "purpose": "Tasks tab in the left navigation rail.", "preconditions": []},
+    "nav-safety": {"route": "/safety", "purpose": "Safety tab in the left navigation rail.", "preconditions": []},
+    "nav-training": {"route": "/training", "purpose": "Training tab in the left navigation rail.", "preconditions": []},
+    "nav-insights": {"route": "/insights", "purpose": "Insights tab in the left navigation rail.", "preconditions": []},
+    "nav-estimator": {"route": "/estimator", "purpose": "Estimator tab in the left navigation rail.", "preconditions": []},
+    "nav-incidents": {"route": "/incidents", "purpose": "Incidents tab in the left navigation rail.", "preconditions": []},
+
     "report-incident": {
         "route": "/incidents",
         "purpose": "Button that opens the incident report form.",
         "preconditions": [],
         "safety_note": "The guide may open the form but never submits it — the operator confirms every report.",
     },
+    "incident-form": {
+        "route": "/incidents",
+        "purpose": "The incident report form fields: category, severity, location and description.",
+        "preconditions": ["The report form has been opened."],
+    },
+    "incident-submit": {
+        "route": "/incidents",
+        "purpose": "Submit button on the incident report form.",
+        "preconditions": ["The form has been filled in."],
+        "safety_note": "The guide may point at this button but the operator presses it.",
+    },
     "incident-list": {
         "route": "/incidents",
         "purpose": "List of logged incidents and their follow-up status.",
         "preconditions": [],
+    },
+    "checklist-confirm": {
+        "route": "/safety",
+        "purpose": "Button that confirms the pre-operation checklist is complete.",
+        "preconditions": ["Every checklist item has been ticked."],
     },
     "start-checklist": {
         "route": "/safety",
@@ -99,6 +125,87 @@ GUIDE_TARGETS: dict[str, dict] = {
         "preconditions": [],
     },
 }
+
+
+# Named walkthroughs. A single highlight answers "where is it"; a task like filing a report
+# is several moves, and the operator should be led through all of them rather than dropped at
+# the first button. Each step waits for the operator to act before the pointer moves on.
+WORKFLOWS: dict[str, dict] = {
+    "report_incident": {
+        "label": "Report an incident",
+        "steps": [
+            ("report-incident", "Select Report Incident to open the form."),
+            ("incident-form", "Set the category and severity, then describe what happened."),
+            ("incident-submit", "Submit when you are ready — the report is yours to send."),
+        ],
+    },
+    "pre_operation_checklist": {
+        "label": "Complete the pre-operation checklist",
+        "steps": [
+            ("nav-safety", "Open the Safety tab."),
+            ("start-checklist", "Work down the checklist and tick each item as you verify it."),
+            ("checklist-confirm", "Confirm completion — this is recorded against the task."),
+        ],
+    },
+    "find_training": {
+        "label": "Find training for this task",
+        "steps": [
+            ("nav-training", "Open the Training tab."),
+            ("training-recommendations", "These are recommended for you, each with the reason it was suggested."),
+        ],
+    },
+    "check_eta": {
+        "label": "See your predicted finish time",
+        "steps": [
+            ("nav-dashboard", "Go back to the Dashboard."),
+            ("task-eta", "This is the predicted range and the factors driving it."),
+        ],
+    },
+    "review_anomaly": {
+        "label": "Review an unusual pattern",
+        "steps": [
+            ("nav-insights", "Open the Insights tab."),
+            ("anomaly-list", "Here is what looked unusual against your own baseline."),
+            ("anomaly-feedback", "If there was a good reason, tell the system — it learns from that."),
+        ],
+    },
+    "find_safety": {
+        "label": "Open the Safety centre",
+        "steps": [
+            ("nav-safety", "The Safety tab is here in the navigation rail."),
+            ("safety-alerts", "Active alerts show here, each with what triggered it."),
+        ],
+    },
+}
+
+
+def plan_for_workflow(name: str) -> list[dict]:
+    """Expand a named workflow into a validated step-by-step plan."""
+    workflow = WORKFLOWS.get(name)
+    if workflow is None:
+        return []
+    plan: list[dict] = []
+    current_route: str | None = None
+    for target_id, message in workflow["steps"]:
+        target = GUIDE_TARGETS.get(target_id)
+        if target is None:
+            continue
+        route = target["route"]
+        if route != "*" and route != current_route:
+            plan.append({"action": "navigate", "target": target_id, "route": route,
+                         "message": "", "waitForUser": False})
+            current_route = route
+        plan.append({"action": "scroll", "target": target_id, "route": route, "message": "", "waitForUser": False})
+        plan.append({"action": "highlight", "target": target_id, "route": route,
+                     "message": message, "waitForUser": True})
+    return validate_actions(plan)
+
+
+def list_workflows() -> list[dict]:
+    return [
+        {"id": key, "label": value["label"], "steps": [s[0] for s in value["steps"]]}
+        for key, value in WORKFLOWS.items()
+    ]
 
 
 def list_targets() -> list[dict]:

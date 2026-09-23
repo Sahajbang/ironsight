@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import models as m
-from app.config import NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL
+from app.config import NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL, NVIDIA_TIMEOUT_S
 from app.services import anomaly, context, eta as eta_service, guide_registry, rules, search
 from app.services.simulation import simulation
 
@@ -65,6 +65,17 @@ TOOLS = [
             "target": {"type": "string", "description": "Guide target id, e.g. report-incident"},
             "message": {"type": "string", "description": "Short instruction shown next to the highlighted control."},
         }, "required": ["target", "message"]},
+    }},
+    {"type": "function", "function": {
+        "name": "start_walkthrough",
+        "description": "Lead the operator through a multi-step task in the app, one control at a time. Prefer this over start_ui_guidance whenever the operator wants to DO something rather than just find it.",
+        "parameters": {"type": "object", "properties": {
+            "workflow": {
+                "type": "string",
+                "enum": list(guide_registry.WORKFLOWS),
+                "description": "Which walkthrough to run.",
+            },
+        }, "required": ["workflow"]},
     }},
     {"type": "function", "function": {
         "name": "navigate_to",
@@ -166,6 +177,7 @@ def _system_prompt(db: Session, operator_id: str, route: str | None) -> str:
     env = context.get_latest_environment(db)
     alerts = rules.evaluate(db, operator_id)
     targets = ", ".join(guide_registry.GUIDE_TARGETS)
+    workflows = ", ".join(f"{k} ({v['label']})" for k, v in guide_registry.WORKFLOWS.items())
 
     lines = [
         "You are Ironsight, an in-cab assistant for heavy-equipment operators (excavators and loaders).",
@@ -182,9 +194,12 @@ def _system_prompt(db: Session, operator_id: str, route: str | None) -> str:
         "RULES",
         "- For any question about how to operate the machine or follow a procedure, call search_manuals first and answer from what it returns. Cite the document title. Do not invent procedures.",
         "- Safety alerts come from the app's own rule engine. Report them; never invent, downgrade or dismiss one.",
-        "- When the operator asks how to do something in this app, call start_ui_guidance so the pointer walks them to the control, then say one sentence about what to do there.",
+        "- If the operator wants to DO something (file a report, complete the checklist, find training), call start_walkthrough — it leads them through every step, waiting at each one. If they only want to FIND something, call start_ui_guidance with the single target.",
+        f"- Walkthroughs: {workflows}",
         f"- Valid start_ui_guidance targets: {targets}",
         "- You can point at a control. You must never submit a report, acknowledge a critical alert, change a threshold, or operate the machine.",
+        "- Target ids and tool names are internal. Never say them to the operator — describe the control in plain words ('the Safety tab on the left'), because the pointer is already showing them where it is.",
+        "- Always finish with a short sentence of your own. Never reply with only a tool call.",
     ]
     return "\n".join(lines)
 
@@ -220,6 +235,11 @@ def chat(db: Session, message: str, operator_id: str = "OP1001", route: str | No
             guide_actions.extend(plan)
             return {"ok": bool(plan), "steps": len(plan),
                     "note": "Pointer queued." if plan else "Unknown guide target — pick one from the allowed list."}
+        if name == "start_walkthrough":
+            plan = guide_registry.plan_for_workflow(args.get("workflow", ""))
+            guide_actions.extend(plan)
+            return {"ok": bool(plan), "steps": sum(1 for s in plan if s["waitForUser"]),
+                    "note": "Walkthrough queued." if plan else "Unknown workflow — pick one from the allowed list."}
         if name == "navigate_to":
             actions = guide_registry.validate_actions(
                 [{"action": "navigate", "target": None, "route": args.get("route"), "message": "", "waitForUser": False}]
@@ -234,7 +254,13 @@ def chat(db: Session, message: str, operator_id: str = "OP1001", route: str | No
     try:
         from openai import OpenAI
 
-        client = OpenAI(base_url=NVIDIA_BASE_URL, api_key=NVIDIA_API_KEY, timeout=45.0)
+        # max_retries=0 on purpose. The SDK's default retry treats a timeout like a blip and
+        # tries again, turning one slow call into three — measured at 137s end to end. We
+        # retry only fast server errors (see _create below); a timeout goes straight to the
+        # fallback, which is what keeps the assistant usable when the provider is struggling.
+        client = OpenAI(
+            base_url=NVIDIA_BASE_URL, api_key=NVIDIA_API_KEY, timeout=NVIDIA_TIMEOUT_S, max_retries=0
+        )
         messages: list[dict] = [
             {"role": "system", "content": _system_prompt(db, operator_id, route)},
             {"role": "user", "content": message if not task_id else f"{message}\n(task_id: {task_id})"},
@@ -242,16 +268,26 @@ def chat(db: Session, message: str, operator_id: str = "OP1001", route: str | No
         tools_used: list[str] = []
         reply = ""
 
+        def _create(payload: list[dict]):
+            """One retry, but only for errors that failed fast — a 500 here costs ~0.3s and
+            often succeeds on the second try, while retrying a timeout just doubles the wait."""
+            try:
+                return client.chat.completions.create(
+                    model=NVIDIA_MODEL, messages=payload, tools=TOOLS, temperature=0.2,
+                    top_p=0.95, max_tokens=900,
+                    extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+                )
+            except Exception as exc:
+                if "Timeout" in type(exc).__name__:
+                    raise
+                return client.chat.completions.create(
+                    model=NVIDIA_MODEL, messages=payload, tools=TOOLS, temperature=0.2,
+                    top_p=0.95, max_tokens=900,
+                    extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+                )
+
         for _ in range(MAX_ROUNDS):
-            response = client.chat.completions.create(
-                model=NVIDIA_MODEL,
-                messages=messages,
-                tools=TOOLS,
-                temperature=0.2,
-                top_p=0.95,
-                max_tokens=900,
-                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-            )
+            response = _create(messages)
             choice = response.choices[0].message
             tool_calls = getattr(choice, "tool_calls", None)
 
@@ -282,7 +318,16 @@ def chat(db: Session, message: str, operator_id: str = "OP1001", route: str | No
                 })
 
         if not reply:
-            reply = "I pulled up what I could — check the highlighted panel for the details."
+            # The model queued guidance but never wrote a sentence. Say what the pointer is
+            # about to do rather than emitting filler the operator can't act on.
+            steps = sum(1 for a in guide_actions if a["waitForUser"])
+            reply = (
+                f"I'll walk you through it — {steps} step{'s' if steps != 1 else ''}. Follow the pointer."
+                if steps > 1
+                else "Follow the pointer — it's on the control you need."
+                if steps == 1
+                else "I couldn't find that. Try Search for manuals and procedures."
+            )
 
         return {
             "reply": reply,
@@ -300,28 +345,57 @@ def chat(db: Session, message: str, operator_id: str = "OP1001", route: str | No
 
 # ---------------------------------------------------------------- deterministic fallback
 
-INTENTS = [
-    ("report-incident", ("report", "incident", "log this", "near miss", "accident")),
-    ("start-checklist", ("checklist", "pre-op", "pre operation", "preoperation", "inspection")),
-    ("safety-alerts", ("safety", "alert", "hazard", "seatbelt", "proximity", "warning", "danger")),
-    ("training-recommendations", ("training", "learn", "refresher", "course", "video", "practice", "simulator")),
-    ("book-instructor", ("instructor", "book", "session", "trainer")),
-    ("task-eta", ("eta", "how long", "finish", "done by", "estimate", "time left")),
-    ("anomaly-list", ("idle", "anomaly", "unusual", "abnormal", "why is my", "behaviour", "behavior")),
-    ("site-map", ("map", "where is", "site", "jobsite", "who else")),
-    ("current-task", ("task", "what should i do", "next", "shift", "schedule")),
+# "Where is X" is a different question from "how do I X" — the first wants one pointer at a
+# tab, the second wants leading through a task. Keeping them apart is what stops the router
+# answering "where is the Safety tab?" with a dump of active alerts.
+NAV_PAGES = [
+    ("nav-safety", ("safety", "hazard", "seatbelt", "proximity")),
+    ("nav-training", ("training", "course", "learn", "instructor")),
+    ("nav-incidents", ("incident", "report", "near miss")),
+    ("nav-insights", ("insight", "anomaly", "idle", "performance")),
+    ("nav-estimator", ("estimator", "estimate", "what-if", "what if")),
+    ("nav-site", ("site map", "jobsite", "map", "live site")),
+    ("nav-tasks", ("task", "schedule", "timeline")),
+    ("nav-dashboard", ("dashboard", "home", "overview", "shift")),
 ]
+
+WORKFLOW_INTENTS = [
+    ("report_incident", ("report", "incident", "log this", "near miss", "accident")),
+    ("pre_operation_checklist", ("checklist", "pre-op", "pre operation", "preoperation", "inspection")),
+    ("find_training", ("training", "learn", "refresher", "course", "video", "practice", "simulator")),
+    ("check_eta", ("eta", "how long", "finish", "done by", "estimate", "time left")),
+    ("review_anomaly", ("idle", "anomaly", "unusual", "abnormal", "behaviour", "behavior")),
+    ("find_safety", ("safety", "alert", "hazard", "seatbelt", "proximity", "danger")),
+]
+
+ASKING_WHERE = ("where is", "where's", "where can i find", "find the", "take me to", "show me the", "which tab")
 
 
 def _fallback(db: Session, message: str, operator_id: str, reason: str) -> dict:
     text = message.lower()
-    target = next((t for t, keywords in INTENTS if any(k in text for k in keywords)), None)
 
-    if target == "safety-alerts":
+    # 1. Pure navigation question -> one pointer at the tab, nothing else.
+    if any(phrase in text for phrase in ASKING_WHERE):
+        nav = next((t for t, keys in NAV_PAGES if any(k in text for k in keys)), None)
+        if nav:
+            label = nav.replace("nav-", "").replace("-", " ").title()
+            reply = f"{label} is in the navigation rail on the left. I'll point at it."
+            return {
+                "reply": reply,
+                "guide_actions": guide_registry.plan_for_target(nav, f"{label} lives here."),
+                "tools_used": ["fallback_router"], "sources": [], "source": "fallback",
+                "model": None, "degraded": True, "degraded_reason": reason,
+            }
+
+    # 2. Task intent -> a full walkthrough rather than a single highlight.
+    workflow = next((w for w, keys in WORKFLOW_INTENTS if any(k in text for k in keys)), None)
+    target = None
+
+    if workflow == "find_safety":
         alerts = rules.evaluate(db, operator_id)
         reply = (f"{len(alerts)} active alert(s): " + "; ".join(f"{a['severity']} — {a['message']}" for a in alerts[:2])
-                 if alerts else "No active safety alerts right now.")
-    elif target == "task-eta":
+                 if alerts else "No active safety alerts right now. I'll show you where they appear.")
+    elif workflow == "check_eta":
         task = context.get_current_task(db, operator_id) or context.get_next_task(db, operator_id)
         if task:
             prediction = eta_service.predict_for_task(db, task)
@@ -330,17 +404,17 @@ def _fallback(db: Session, message: str, operator_id: str, reason: str) -> dict:
                      f"({prediction['confidence'].lower()} confidence). Main factors: {factors}.")
         else:
             reply = "No task scheduled to estimate."
-    elif target == "anomaly-list":
+    elif workflow == "review_anomaly":
         rows = list(db.scalars(
             select(m.AnomalyEvent).where(m.AnomalyEvent.operator_id == operator_id)
             .order_by(m.AnomalyEvent.created_at.desc()).limit(1)
         ))
         reply = rows[0].explanation if rows else "No unusual operating patterns detected recently."
-    elif target == "report-incident":
-        reply = "I'll take you to the incident form. Fill in what happened — you submit it, not me."
-    elif target == "start-checklist":
-        reply = "Here's the pre-operation checklist for your next task. Work through every item before you start."
-    elif target in ("training-recommendations", "book-instructor"):
+    elif workflow == "report_incident":
+        reply = "I'll walk you through it. You fill in the details and submit — I only point."
+    elif workflow == "pre_operation_checklist":
+        reply = "I'll take you through the checklist for your next task, item by item."
+    elif workflow == "find_training":
         grouped = search.grouped_search(db, message, limit=3)
         titles = ", ".join(r["title"] for r in grouped["results"][:2])
         reply = f"Training that matches: {titles}." if titles else "Opening the training hub."
@@ -348,14 +422,19 @@ def _fallback(db: Session, message: str, operator_id: str, reason: str) -> dict:
         grouped = search.grouped_search(db, message, limit=3)
         if grouped["quick_answer"]:
             reply = f"{grouped['quick_answer']['text']} (from {grouped['quick_answer']['source_title']})"
-            target = target or "search-bar"
+            target = "search-bar"
         else:
             task = context.get_current_task(db, operator_id) or context.get_next_task(db, operator_id)
             reply = (f"Your next task is {task.task_type} in {task.zone}." if task
                      else "Nothing scheduled right now. Try Search for manuals and procedures.")
-            target = target or "current-task"
+            target = "current-task"
 
-    guide_actions = guide_registry.plan_for_target(target, reply[:90]) if target else []
+    if workflow:
+        guide_actions = guide_registry.plan_for_workflow(workflow)
+    elif target:
+        guide_actions = guide_registry.plan_for_target(target, reply[:90])
+    else:
+        guide_actions = []
     return {
         "reply": reply,
         "guide_actions": guide_actions,

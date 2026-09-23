@@ -20,8 +20,6 @@ export const useApp = create<AppState>((set) => ({
 
 /* ---------------- guide ---------------- */
 
-export type GuidePhase = "idle" | "navigating" | "delivering" | "waiting";
-
 interface GuideState {
   /** Off by default: a pointer that shows up uninvited while someone is operating a
    *  machine is a distraction, so the operator opts in and can switch it off instantly. */
@@ -30,12 +28,11 @@ interface GuideState {
 
   plan: GuideAction[];
   stepIndex: number;
-  phase: GuidePhase;
-  message: string;
 
   start: (plan: GuideAction[]) => void;
-  setPhase: (phase: GuidePhase, message?: string) => void;
   advance: () => void;
+  /** Ends the current walkthrough. The pointer itself stays on as a companion — only
+   *  switching the guide off removes it. */
   stop: () => void;
 }
 
@@ -57,25 +54,20 @@ export const useGuide = create<GuideState>((set, get) => ({
     } catch {
       /* private mode — the toggle still works for this session */
     }
-    set(enabled ? { enabled } : { enabled, plan: [], stepIndex: 0, phase: "idle" });
+    set(enabled ? { enabled } : { enabled, plan: [], stepIndex: 0 });
   },
 
   plan: [],
   stepIndex: 0,
-  phase: "idle",
-  message: "",
 
   start: (plan) => {
     if (!get().enabled || plan.length === 0) return;
-    set({ plan, stepIndex: 0, phase: "navigating", message: "" });
+    set({ plan, stepIndex: 0 });
   },
-  setPhase: (phase, message) => set((s) => ({ phase, message: message ?? s.message })),
   advance: () =>
     set((s) => {
       const next = s.stepIndex + 1;
-      return next >= s.plan.length
-        ? { plan: [], stepIndex: 0, phase: "idle" as GuidePhase, message: "" }
-        : { stepIndex: next, phase: "navigating" as GuidePhase };
+      return next >= s.plan.length ? { plan: [], stepIndex: 0 } : { stepIndex: next };
     }),
-  stop: () => set({ plan: [], stepIndex: 0, phase: "idle", message: "" }),
+  stop: () => set({ plan: [], stepIndex: 0 }),
 }));

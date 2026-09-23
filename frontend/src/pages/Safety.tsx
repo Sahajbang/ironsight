@@ -30,7 +30,7 @@ export function Safety() {
   return (
     <div className="page__grid">
       <div className="col" style={{ gap: "var(--s5)" }}>
-        <Card title="Live safety state" icon="shield" data-testid="safety-live">
+        <Card title="Live safety state" icon="shield">
           {isLoading || !live ? (
             <CardSkeleton rows={4} />
           ) : (
@@ -72,7 +72,7 @@ export function Safety() {
           )}
         </Card>
 
-        <Card title="Active alerts" icon="alert" data-guide-id="safety-alerts">
+        <Card title="Active alerts" icon="alert">
           <div className="stack" data-guide-id="safety-alerts">
             {live?.alerts.length === 0 && <Empty icon="check">No safety rules are firing right now.</Empty>}
             {live?.alerts.map((alert) => (
@@ -140,6 +140,7 @@ export function Safety() {
                     variant="primary"
                     block
                     icon="check"
+                    data-guide-id="checklist-confirm"
                     disabled={!allTicked || complete.isPending}
                     onClick={() =>
                       complete.mutate({ taskId: checklist.task_id, operatorId, items: checklist.items })

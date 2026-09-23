@@ -175,6 +175,105 @@ export function Meter({ value, tone }: { value: number; tone?: "critical" | "war
   );
 }
 
+/* ---------------- Knob gauge ---------------- */
+
+const KNOB_R = 42;
+const KNOB_CIRC = 2 * Math.PI * KNOB_R;
+const KNOB_SWEEP = 0.75; // 270° dial, like an instrument panel rather than a full ring
+
+/** A dial you read at a glance: value as an arc, the number in the middle, nothing else.
+ *  Concentric raised-then-inset rings are what make it read as a physical knob. */
+export function Knob({
+  value,
+  max = 100,
+  display,
+  unit,
+  tone = "accent",
+  size = 116,
+}: {
+  value: number;
+  max?: number;
+  display?: string;
+  unit?: string;
+  tone?: Tone;
+  size?: number;
+}) {
+  const fraction = Math.max(0, Math.min(1, max === 0 ? 0 : value / max));
+  const color = tone === "neutral" ? "var(--text-muted)" : `var(--${tone === "accent" ? "accent" : tone})`;
+
+  return (
+    <div className="knob" style={{ width: size, height: size }}>
+      <div className="knob__rim">
+        <div className="knob__face">
+          <svg viewBox="0 0 100 100" className="knob__svg">
+            <circle
+              cx="50"
+              cy="50"
+              r={KNOB_R}
+              fill="none"
+              stroke="var(--surface-deep)"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeDasharray={`${KNOB_CIRC * KNOB_SWEEP} ${KNOB_CIRC}`}
+              transform="rotate(135 50 50)"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r={KNOB_R}
+              fill="none"
+              stroke={color}
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeDasharray={`${KNOB_CIRC * KNOB_SWEEP * fraction} ${KNOB_CIRC}`}
+              transform="rotate(135 50 50)"
+              style={{ transition: "stroke-dasharray 400ms cubic-bezier(0.22,0.61,0.36,1)" }}
+            />
+          </svg>
+          <div className="knob__center">
+            <span className="knob__value">{display ?? Math.round(value)}</span>
+            {unit && <span className="knob__unit">{unit}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Square module that opens to show its detail — the glanceable number stays, the
+ *  explanation is one tap away instead of permanently taking up room. */
+export function GaugeTile({
+  label,
+  children,
+  detail,
+  open,
+  onToggle,
+  footer,
+}: {
+  label: string;
+  children: ReactNode;
+  detail?: ReactNode;
+  open?: boolean;
+  onToggle?: () => void;
+  footer?: ReactNode;
+}) {
+  return (
+    <div className={`gtile ${open ? "gtile--open" : ""}`}>
+      <button className="gtile__main" onClick={onToggle} aria-expanded={!!open} disabled={!detail}>
+        <span className="label">{label}</span>
+        {children}
+        {footer && <span className="gtile__foot">{footer}</span>}
+        {detail && (
+          <span className="gtile__chev">
+            <Icon name="chevronDown" size={14} />
+          </span>
+        )}
+      </button>
+      {open && detail && <div className="gtile__detail">{detail}</div>}
+    </div>
+  );
+}
+
 /* ---------------- Tabs ---------------- */
 
 export function Tabs<T extends string>({

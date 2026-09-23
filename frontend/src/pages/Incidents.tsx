@@ -103,6 +103,7 @@ export function Incidents() {
                 <Button
                   variant="primary"
                   icon="send"
+                  data-guide-id="incident-submit"
                   disabled={description.trim().length < 3 || create.isPending}
                   onClick={submit}
                 >

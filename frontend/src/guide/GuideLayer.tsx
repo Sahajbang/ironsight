@@ -1,15 +1,23 @@
 /* The AI Guide pointer and its delivery vehicle.
  *
- * Flow per highlight step: the loader drives in along the bottom of the target, raises its
- * boom, tips the cursor out into place, then drives off. The vehicle leaving matters — a
- * machine parked permanently on screen would be exactly the distraction the operator asked
- * us to avoid, so it only appears for the moment of handoff.
+ * The pointer is ONE persistent element for the whole session. Its position is a pair of
+ * springs, which is what lets the same object do two different jobs without ever popping
+ * out of existence:
  *
- * Nothing here blocks the UI: there is no modal backdrop, Escape always exits, and the
- * dismiss button is always reachable (PRD §23 — guidance must never trap the operator).
+ *   companion mode — no walkthrough running, so the springs chase the operator's real
+ *   cursor at an offset. It trails slightly behind, like something riding along with you
+ *   rather than something stuck to the mouse.
+ *
+ *   guiding mode — a walkthrough is running, so the springs chase the current target. The
+ *   pointer physically travels there, waits while the operator acts, then travels to the
+ *   next control. It never disappears between steps.
+ *
+ * The loader only appears when the guide is switched on: it drives in, tips the pointer out
+ * and leaves. A machine parked permanently on screen would be the distraction we were asked
+ * to avoid, and re-running the delivery on every step would get old fast.
  */
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Icon } from "../design";
@@ -18,187 +26,205 @@ import { LoaderVehicle } from "./LoaderVehicle";
 import "./guide.css";
 
 const LOADER_W = 132;
-const LOADER_H = 76;
+const COMPANION_OFFSET = { x: 26, y: 24 };
 
-interface Geometry {
-  rect: DOMRect;
-  loaderX: number;
-  loaderY: number;
-  pointerX: number;
-  pointerY: number;
-  tipX: number;
-  tipY: number;
-  tooltipAbove: boolean;
+interface Rect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  bottom: number;
+  right: number;
 }
 
-function findTarget(id: string | null): HTMLElement | null {
-  if (!id) return null;
-  return document.querySelector<HTMLElement>(`[data-guide-id="${id}"]`);
-}
+const findTarget = (id: string | null | undefined) =>
+  id ? document.querySelector<HTMLElement>(`[data-guide-id="${id}"]`) : null;
 
-function measure(el: HTMLElement): Geometry {
-  const rect = el.getBoundingClientRect();
-  const groundY = Math.min(rect.bottom + 14, window.innerHeight - 24);
-  const parkX = Math.max(12, Math.min(rect.left - 108, window.innerWidth - LOADER_W - 12));
-  return {
-    rect,
-    loaderX: parkX,
-    loaderY: groundY - LOADER_H,
-    // where the cursor comes to rest: just inside the element, like a real pointer aimed at it
-    pointerX: rect.left + Math.min(rect.width * 0.32, 44),
-    pointerY: rect.top + rect.height / 2,
-    // bucket tip once the boom is raised
-    tipX: parkX + 124,
-    tipY: groundY - LOADER_H + 2,
-    tooltipAbove: rect.bottom + 150 > window.innerHeight,
-  };
+function rectOf(el: HTMLElement): Rect {
+  const r = el.getBoundingClientRect();
+  return { left: r.left, top: r.top, width: r.width, height: r.height, bottom: r.bottom, right: r.right };
 }
 
 export function GuideLayer() {
-  const { plan, stepIndex, phase, enabled, setPhase, advance, stop } = useGuide();
+  const { enabled, plan, stepIndex, advance, stop } = useGuide();
   const navigate = useNavigate();
   const location = useLocation();
-  const [geo, setGeo] = useState<Geometry | null>(null);
+
+  const [delivering, setDelivering] = useState(false);
+  const [pointerAlive, setPointerAlive] = useState(false);
+  const [loaderX, setLoaderX] = useState(-LOADER_W - 40);
   const [boom, setBoom] = useState(0);
   const [driving, setDriving] = useState(false);
-  const [leaving, setLeaving] = useState(false);
+  const [target, setTarget] = useState<Rect | null>(null);
+
   const timers = useRef<number[]>([]);
-
-  const step = plan[stepIndex];
-
   const clearTimers = () => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
   };
-  const after = (ms: number, fn: () => void) => {
+  const after = useCallback((ms: number, fn: () => void) => {
     timers.current.push(window.setTimeout(fn, ms));
-  };
+  }, []);
 
-  /* Run the current step. */
+  const step = plan[stepIndex];
+  const guiding = enabled && !!step && step.action !== "navigate" && step.action !== "scroll";
+
+  /* ---- the pointer's position: two springs, fed either by the mouse or by a target ---- */
+  const px = useMotionValue(typeof window !== "undefined" ? window.innerWidth / 2 : 0);
+  const py = useMotionValue(typeof window !== "undefined" ? window.innerHeight / 2 : 0);
+  const sx = useSpring(px, { stiffness: 110, damping: 17, mass: 0.75 });
+  const sy = useSpring(py, { stiffness: 110, damping: 17, mass: 0.75 });
+
+  /* Companion mode: trail the operator's cursor. */
   useEffect(() => {
-    if (!enabled || !step) return;
+    if (!enabled || !pointerAlive || guiding) return;
+    const onMove = (e: MouseEvent) => {
+      px.set(e.clientX + COMPANION_OFFSET.x);
+      py.set(e.clientY + COMPANION_OFFSET.y);
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [enabled, pointerAlive, guiding, px, py]);
+
+  /* Guiding mode: park on the current target. */
+  useEffect(() => {
+    if (!guiding || !target) return;
+    px.set(target.left + Math.min(target.width * 0.3, 42));
+    py.set(target.top + target.height / 2);
+  }, [guiding, target, px, py]);
+
+  /* ---- delivery: only when the switch is turned on ---- */
+  useEffect(() => {
     clearTimers();
-
-    if (step.action === "navigate") {
-      if (step.route && step.route !== "*" && step.route !== location.pathname) navigate(step.route);
-      after(step.route && step.route !== location.pathname ? 420 : 60, advance);
-      return clearTimers;
+    if (!enabled) {
+      setPointerAlive(false);
+      setDelivering(false);
+      return;
     }
+    if (pointerAlive) return;
 
-    if (step.action === "scroll") {
-      findTarget(step.target)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      after(520, advance);
-      return clearTimers;
-    }
-
-    // highlight / explain / tooltip — the delivery beat
-    const el = findTarget(step.target);
-    if (!el) {
-      after(80, advance); // target not on this screen; skip rather than stall
-      return clearTimers;
-    }
-
-    const g = measure(el);
-    setGeo(g);
-    setLeaving(false);
-    setBoom(0);
+    const parkX = Math.max(24, window.innerWidth / 2 - LOADER_W);
+    setLoaderX(-LOADER_W - 40);
+    setDelivering(true);
     setDriving(true);
-    setPhase("delivering", step.message);
-
-    after(1150, () => setDriving(false)); // arrived
-    after(1250, () => setBoom(-24)); // raise boom
-    after(1850, () => setBoom(-14)); // tip the bucket, cursor rolls out
-    after(2500, () => {
-      setPhase("waiting", step.message);
+    setBoom(0);
+    after(30, () => setLoaderX(parkX));
+    after(1200, () => setDriving(false));
+    after(1300, () => setBoom(-24));
+    after(1850, () => {
+      // pointer tips out of the bucket into the middle of the view, then takes over
+      px.jump(parkX + 118);
+      py.jump(window.innerHeight / 2);
+      setPointerAlive(true);
+      setBoom(-12);
+    });
+    after(2400, () => {
       setBoom(0);
       setDriving(true);
-      setLeaving(true); // drive off — the pointer stays, the machine does not
+      setLoaderX(window.innerWidth + 120);
     });
-
+    after(3500, () => setDelivering(false));
     return clearTimers;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+
+  /* ---- run the plan: navigate and scroll auto-advance, highlight waits ---- */
+  useEffect(() => {
+    if (!enabled || !step) return;
+    if (step.action === "navigate") {
+      const needsMove = step.route && step.route !== "*" && step.route !== location.pathname;
+      if (needsMove) navigate(step.route!);
+      const id = window.setTimeout(advance, needsMove ? 420 : 60);
+      return () => clearTimeout(id);
+    }
+    if (step.action === "scroll") {
+      findTarget(step.target)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const id = window.setTimeout(advance, 480);
+      return () => clearTimeout(id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, stepIndex, plan.length]);
 
-  /* Keep the highlight glued to the element while the page scrolls or resizes. */
+  /* Track the current target. Polled, because a step often points at something that only
+     exists after the previous step was acted on — the incident form appears only once the
+     operator has pressed the button the step before it highlighted. */
   useEffect(() => {
-    if (phase !== "waiting" || !step?.target) return;
+    if (!guiding) {
+      setTarget(null);
+      return;
+    }
     const sync = () => {
-      const el = findTarget(step.target);
-      if (el) setGeo(measure(el));
+      const el = findTarget(step?.target);
+      setTarget(el ? rectOf(el) : null);
     };
+    sync();
+    const poll = window.setInterval(sync, 220);
     window.addEventListener("scroll", sync, true);
     window.addEventListener("resize", sync);
     return () => {
+      clearInterval(poll);
       window.removeEventListener("scroll", sync, true);
       window.removeEventListener("resize", sync);
     };
-  }, [phase, step?.target]);
+  }, [guiding, step?.target]);
 
-  /* Escape always gets the operator out. */
+  /* Acting on the highlighted control is the natural way to move on. */
   useEffect(() => {
-    if (phase === "idle") return;
+    if (!guiding || !step?.target) return;
+    const el = findTarget(step.target);
+    if (!el) return;
+    const onClick = () => window.setTimeout(advance, 260);
+    el.addEventListener("click", onClick);
+    return () => el.removeEventListener("click", onClick);
+  }, [guiding, step?.target, target, advance]);
+
+  /* Escape always gets the operator out of a walkthrough. */
+  useEffect(() => {
+    if (!guiding) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && stop();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase, stop]);
-
-  /* Acting on the highlighted control itself is the natural way to continue. */
-  useEffect(() => {
-    if (phase !== "waiting" || !step?.target) return;
-    const el = findTarget(step.target);
-    if (!el) return;
-    const onClick = () => advance();
-    el.addEventListener("click", onClick);
-    return () => el.removeEventListener("click", onClick);
-  }, [phase, step?.target, advance]);
+  }, [guiding, stop]);
 
   useEffect(() => clearTimers, []);
 
-  const active = enabled && phase !== "idle" && !!geo;
-  const showVehicle = enabled && phase === "delivering" && !!geo;
-  const showPointer = active && (phase === "waiting" || (phase === "delivering" && boom === -14));
-  const interactiveTotal = plan.filter((s) => s.waitForUser).length;
-  const interactiveIndex = plan.slice(0, stepIndex + 1).filter((s) => s.waitForUser).length;
+  const totalSteps = plan.filter((s) => s.waitForUser).length;
+  const currentStep = plan.slice(0, stepIndex + 1).filter((s) => s.waitForUser).length;
+  const waitingForTarget = guiding && !target;
+  const tipAbove = target ? target.bottom + 170 > window.innerHeight : false;
 
   return (
     <div className="guide-layer" aria-live="polite">
       {/* highlight ring */}
       <AnimatePresence>
-        {active && geo && (
+        {guiding && target && (
           <motion.div
             key="ring"
             className="guide-ring"
             initial={{ opacity: 0, scale: 1.08 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.28 }}
+            transition={{ duration: 0.26 }}
             style={{
-              left: geo.rect.left - 8,
-              top: geo.rect.top - 8,
-              width: geo.rect.width + 16,
-              height: geo.rect.height + 16,
+              left: target.left - 8,
+              top: target.top - 8,
+              width: target.width + 16,
+              height: target.height + 16,
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* loader driving in, delivering, driving out */}
+      {/* the loader — on arrival only */}
       <AnimatePresence>
-        {showVehicle && geo && (
+        {delivering && (
           <motion.div
             key="loader"
             className="guide-loader"
-            initial={{ x: -LOADER_W - 40, y: geo.loaderY, opacity: 0 }}
-            animate={{
-              x: leaving ? window.innerWidth + 80 : geo.loaderX,
-              y: geo.loaderY,
-              opacity: 1,
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ x: loaderX, y: window.innerHeight / 2 + 34, opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{
-              x: { duration: leaving ? 1.0 : 1.15, ease: leaving ? "easeIn" : "easeOut" },
-              opacity: { duration: 0.2 },
-            }}
+            transition={{ x: { duration: 1.15, ease: driving ? "easeOut" : "easeIn" }, opacity: { duration: 0.25 } }}
           >
             <motion.div
               animate={driving ? { y: [0, -1.2, 0] } : { y: 0 }}
@@ -210,26 +236,21 @@ export function GuideLayer() {
         )}
       </AnimatePresence>
 
-      {/* the pointer itself — tipped out of the bucket, then parked on the target */}
+      {/* the pointer — one element, alive for as long as the guide is on */}
       <AnimatePresence>
-        {showPointer && geo && (
+        {enabled && pointerAlive && (
           <motion.div
             key="pointer"
             className="guide-pointer"
-            initial={{ x: geo.tipX, y: geo.tipY, opacity: 0, rotate: -35, scale: 0.8 }}
-            animate={{
-              x: geo.pointerX,
-              y: geo.pointerY,
-              opacity: 1,
-              rotate: 0,
-              scale: 1,
-            }}
-            exit={{ opacity: 0, scale: 0.7 }}
-            transition={{ type: "spring", stiffness: 140, damping: 13, mass: 0.8 }}
+            style={{ x: sx, y: sy }}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: guiding ? 1 : 0.82 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.3 }}
           >
             <motion.div
-              animate={{ y: [0, -5, 0] }}
-              transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+              animate={guiding ? { y: [0, -5, 0] } : { y: 0 }}
+              transition={guiding ? { repeat: Infinity, duration: 1.6, ease: "easeInOut" } : { duration: 0.2 }}
             >
               <svg width="30" height="34" viewBox="0 0 30 34" fill="none">
                 <path
@@ -245,41 +266,56 @@ export function GuideLayer() {
         )}
       </AnimatePresence>
 
-      {/* instruction */}
+      {/* instruction card */}
       <AnimatePresence>
-        {phase === "waiting" && geo && step && (
+        {guiding && step && (
           <motion.div
             key="tip"
             className="guide-tip"
-            initial={{ opacity: 0, y: geo.tooltipAbove ? 8 : -8 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.24 }}
-            style={{
-              left: Math.max(12, Math.min(geo.rect.left, window.innerWidth - 332)),
-              top: geo.tooltipAbove ? undefined : geo.rect.bottom + 18,
-              bottom: geo.tooltipAbove ? window.innerHeight - geo.rect.top + 18 : undefined,
-            }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.22 }}
+            style={
+              target
+                ? {
+                    left: Math.max(12, Math.min(target.left, window.innerWidth - 344)),
+                    top: tipAbove ? undefined : target.bottom + 18,
+                    bottom: tipAbove ? window.innerHeight - target.top + 18 : undefined,
+                  }
+                : { left: 24, bottom: 24 }
+            }
           >
             <div className="guide-tip__head">
               <span className="guide-tip__badge">
                 <Icon name="target" size={13} />
                 AI Guide
               </span>
-              <button className="guide-tip__close" onClick={stop} aria-label="Dismiss guide">
+              <button className="guide-tip__close" onClick={stop} aria-label="Exit walkthrough">
                 <Icon name="close" size={15} />
               </button>
             </div>
-            <p className="guide-tip__text">{step.message || "This is the control you need."}</p>
+
+            <p className="guide-tip__text">
+              {waitingForTarget
+                ? "Waiting for that control to appear — carry on with the step above."
+                : step.message || "This is the control you need."}
+            </p>
+
+            {totalSteps > 1 && (
+              <div className="guide-tip__dots" aria-hidden>
+                {Array.from({ length: totalSteps }).map((_, i) => (
+                  <span key={i} className="guide-tip__dot" data-done={i < currentStep - 1} data-now={i === currentStep - 1} />
+                ))}
+              </div>
+            )}
+
             <div className="guide-tip__foot">
-              {/* Count only the beats the operator actually acts on. Navigate and scroll are
-                  internal plumbing — showing "step 3 of 3" for a single instruction reads as
-                  if they missed two steps. */}
               <span className="guide-tip__step">
-                {interactiveTotal > 1 ? `Step ${interactiveIndex} of ${interactiveTotal}` : "AI guide"}
+                {totalSteps > 1 ? `Step ${currentStep} of ${totalSteps}` : "AI guide"}
               </span>
               <button className="guide-tip__next" onClick={advance}>
-                {stepIndex + 1 >= plan.length ? "Done" : "Next"}
+                {currentStep >= totalSteps ? "Done" : "Next"}
                 <Icon name="chevronRight" size={14} />
               </button>
             </div>

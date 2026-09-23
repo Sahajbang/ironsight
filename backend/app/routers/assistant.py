@@ -31,9 +31,19 @@ def guide(target: str, message: str | None = None):
 def guide_targets():
     return {
         "targets": guide_registry.list_targets(),
+        "workflows": guide_registry.list_workflows(),
         "allowed_actions": sorted(guide_registry.ALLOWED_ACTIONS),
         "restricted_actions": sorted(guide_registry.RESTRICTED_ACTIONS),
     }
+
+
+@router.post("/guide/walkthrough")
+def walkthrough(workflow: str):
+    """Run a named multi-step walkthrough without going through the LLM."""
+    actions = guide_registry.plan_for_workflow(workflow)
+    if not actions:
+        return {"workflow": workflow, "actions": [], "error": "unknown workflow"}
+    return {"workflow": workflow, "actions": actions, "steps": sum(1 for a in actions if a["waitForUser"])}
 
 
 @router.get("/status")

@@ -264,6 +264,124 @@
   background: var(--ok);
 }
 
+/* ---------------- knob ---------------- */
+
+.knob {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.knob__rim {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--raise);
+  padding: 7px;
+}
+
+.knob__face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+  display: grid;
+  place-items: center;
+}
+
+.knob__svg {
+  position: absolute;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+}
+
+.knob__center {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  z-index: 1;
+}
+
+.knob__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.knob__unit {
+  font-size: 0.66rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ---------------- gauge tile ---------------- */
+
+.gtile {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--raise);
+  overflow: hidden;
+}
+
+.gtile--open {
+  box-shadow: var(--raise-lg);
+}
+
+.gtile__main {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  padding: var(--s4);
+  text-align: center;
+  transition: background var(--fast) var(--ease);
+}
+
+.gtile__main:disabled {
+  cursor: default;
+}
+
+.gtile__main:not(:disabled):hover {
+  background: var(--surface-raised);
+}
+
+.gtile__foot {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.gtile__chev {
+  position: absolute;
+  bottom: 9px;
+  color: var(--text-muted);
+  transition: transform var(--med) var(--ease);
+}
+
+.gtile--open .gtile__chev {
+  transform: rotate(180deg);
+}
+
+.gtile__detail {
+  padding: var(--s4);
+  margin: 0 var(--s3) var(--s3);
+  border-radius: var(--r-md);
+  box-shadow: var(--inset-sm);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
 /* ---------------- input ---------------- */
 
 .input {

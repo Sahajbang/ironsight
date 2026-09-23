@@ -1,14 +1,216 @@
 /* ---------------- dashboard ---------------- */
 
 .dash {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+/* Four square modules, read in one sweep. Detail lives inside them rather than beside them. */
+.dash__gauges {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 352px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s4);
+  align-items: start;
+}
+
+.dash__work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--s5);
   align-items: start;
 }
 
+.dash__strip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--s3);
+}
+
+.minigrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+
 .dash__full {
   grid-column: 1 / -1;
+}
+
+/* ---------------- lead action ---------------- */
+
+.leadaction {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  width: 100%;
+  padding: var(--s4) var(--s5);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--raise);
+  color: var(--text-muted);
+  transition: box-shadow var(--med) var(--ease), transform var(--med) var(--ease);
+}
+
+.leadaction:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--raise-lg);
+}
+
+.leadaction__mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 3px 10px rgba(217, 164, 0, 0.35);
+}
+
+.leadaction__mark--critical,
+.leadaction__mark--warning {
+  background: var(--critical);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(192, 57, 43, 0.35);
+}
+
+.leadaction__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.leadaction__why {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.leadaction__more {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---------------- compact timeline ---------------- */
+
+.tline {
+  display: flex;
+  flex-direction: column;
+}
+
+.tline__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 10px var(--s2);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.tline__row:hover {
+  box-shadow: var(--flat);
+}
+
+.tline__time {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 42px;
+  text-align: left;
+}
+
+.tline__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+}
+
+.tline__dot--ok {
+  background: var(--ok);
+  box-shadow: none;
+}
+.tline__dot--accent {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.tline__dot--info {
+  background: var(--info);
+  box-shadow: none;
+}
+.tline__dot--critical {
+  background: var(--critical);
+  box-shadow: none;
+}
+
+.tline__name {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.tline__meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.tline__go {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 2px 7px rgba(217, 164, 0, 0.35);
+  cursor: pointer;
+}
+
+/* ---------------- mini tiles ---------------- */
+
+.mtile {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  color: var(--text-muted);
+}
+
+.mtile__value {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mtile__sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.mtile--ok .mtile__value {
+  color: var(--ok);
+}
+.mtile--warning .mtile__value {
+  color: var(--warning);
+}
+.mtile--critical .mtile__value {
+  color: var(--critical);
 }
 
 .dash__note {
@@ -616,9 +818,12 @@
 /* ---------------- responsive ---------------- */
 
 @media (max-width: 1240px) {
-  .dash,
-  .page__grid {
+  .page__grid,
+  .dash__work {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .dash__gauges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

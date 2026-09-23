@@ -182,7 +182,9 @@
 
 .content {
   flex: 1;
-  padding: 0 var(--s6) var(--s7);
+  /* Bottom gap clears the fixed chat dock — without it the launcher sits on top of the
+     last row of cards and swallows clicks there. */
+  padding: 0 var(--s6) 104px;
 }
 
 /* ---------------- search ---------------- */
@@ -347,6 +349,6 @@
     padding: var(--s4);
   }
   .content {
-    padding: 0 var(--s4) var(--s7);
+    padding: 0 var(--s4) 104px;
   }
 }

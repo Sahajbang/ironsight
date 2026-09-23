@@ -7,15 +7,18 @@ import { useApp } from "../state/store";
 import { GlobalSearch } from "./GlobalSearch";
 import "./shell.css";
 
+/* Nav entries own the `nav-*` ids and page content owns the content ids. They used to
+   share them, and since the guide resolves a target with querySelector it always found the
+   nav item first — so "show me the active alerts" pointed at the sidebar instead. */
 const NAV: { to: string; label: string; icon: IconName; guideId: string }[] = [
   { to: "/", label: "Dashboard", icon: "gauge", guideId: "nav-dashboard" },
-  { to: "/site", label: "Live Site", icon: "map", guideId: "site-map" },
-  { to: "/tasks", label: "Tasks", icon: "list", guideId: "task-timeline" },
-  { to: "/safety", label: "Safety", icon: "shield", guideId: "safety-alerts" },
-  { to: "/training", label: "Training", icon: "book", guideId: "open-training" },
-  { to: "/insights", label: "Insights", icon: "chart", guideId: "anomaly-list" },
-  { to: "/estimator", label: "Estimator", icon: "clock", guideId: "task-estimator" },
-  { to: "/incidents", label: "Incidents", icon: "alert", guideId: "incident-list" },
+  { to: "/site", label: "Live Site", icon: "map", guideId: "nav-site" },
+  { to: "/tasks", label: "Tasks", icon: "list", guideId: "nav-tasks" },
+  { to: "/safety", label: "Safety", icon: "shield", guideId: "nav-safety" },
+  { to: "/training", label: "Training", icon: "book", guideId: "nav-training" },
+  { to: "/insights", label: "Insights", icon: "chart", guideId: "nav-insights" },
+  { to: "/estimator", label: "Estimator", icon: "clock", guideId: "nav-estimator" },
+  { to: "/incidents", label: "Incidents", icon: "alert", guideId: "nav-incidents" },
 ];
 
 const TITLES: Record<string, string> = {
