@@ -21,3 +21,4 @@ Thumbs.db
 
 # Ignore the source PRD docs (kept locally, not part of the product)
 IGNORE-FILES/
+PITCH.md
