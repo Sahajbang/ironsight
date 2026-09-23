@@ -1,0 +1,379 @@
+/* Neumorphic component surfaces. Every element here shares the page background and is
+   separated only by the dual shadow — no borders, anywhere. */
+
+/* ---------------- card ---------------- */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--raise);
+  padding: var(--s5);
+}
+
+.card--tight {
+  padding: var(--s4);
+}
+
+.card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.card--flat {
+  box-shadow: var(--flat);
+}
+
+.card--inset {
+  box-shadow: var(--inset);
+}
+
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-secondary);
+}
+
+/* ---------------- button ---------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: 44px; /* large touch target — gloved hands, jobsite tablet */
+  padding: 0 var(--s5);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: box-shadow var(--fast) var(--ease), color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--text);
+  box-shadow: var(--raise);
+}
+
+.btn:active:not(:disabled) {
+  box-shadow: var(--inset-sm);
+  transform: scale(0.98);
+  color: var(--accent-deep);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--sm {
+  min-height: 34px;
+  padding: 0 var(--s3);
+  font-size: 0.8rem;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* The one intentional break from the material: a flat accent fill so the primary action
+   on a screen is unmistakable. Dark label on yellow — the way Cat itself pairs them. */
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(217, 164, 0, 0.35), var(--raise-sm);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-deep);
+  color: var(--on-accent);
+  box-shadow: 0 6px 16px rgba(217, 164, 0, 0.45), var(--raise-sm);
+}
+
+.btn--primary:active:not(:disabled) {
+  color: var(--on-accent);
+  box-shadow: var(--inset-sm);
+}
+
+.btn--active {
+  box-shadow: var(--inset-sm);
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+/* ---------------- icon button ---------------- */
+
+.iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  color: var(--text-muted);
+  transition: box-shadow var(--fast) var(--ease), color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.iconbtn:hover:not(:disabled) {
+  color: var(--text-secondary);
+  box-shadow: var(--raise);
+}
+
+.iconbtn:active:not(:disabled),
+.iconbtn[data-active="true"] {
+  box-shadow: var(--inset-sm);
+  color: var(--accent-deep);
+  transform: scale(0.98);
+}
+
+.iconbtn--round {
+  border-radius: 50%;
+}
+
+.iconbtn--sm {
+  width: 34px;
+  height: 34px;
+}
+
+/* ---------------- badge / severity ---------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--flat);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Severity carries a dot AND a word AND a colour — never colour alone, because a bright
+   cab, glare, or colour-blindness can each take the colour channel away. */
+.badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.badge--critical {
+  color: var(--critical);
+  background: var(--critical-soft);
+}
+.badge--warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+.badge--caution {
+  color: var(--caution);
+  background: var(--caution-soft);
+}
+.badge--info {
+  color: var(--info);
+  background: var(--info-soft);
+}
+.badge--ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+.badge--accent {
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+}
+
+/* ---------------- toggle ---------------- */
+
+.toggle {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--inset);
+  padding: 0;
+  transition: box-shadow var(--med) var(--ease);
+}
+
+.toggle__thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  transition: transform var(--med) var(--ease), background var(--med) var(--ease);
+}
+
+.toggle[data-on="true"] .toggle__thumb {
+  transform: translateX(22px);
+  background: var(--accent);
+}
+
+/* ---------------- meter / progress ---------------- */
+
+.meter {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+  overflow: hidden;
+}
+
+.meter__fill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  transition: width var(--med) var(--ease);
+}
+
+.meter__fill--critical {
+  background: var(--critical);
+}
+.meter__fill--warning {
+  background: var(--warning);
+}
+.meter__fill--ok {
+  background: var(--ok);
+}
+
+/* ---------------- input ---------------- */
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--inset);
+  color: var(--text-muted);
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.input:focus-within {
+  box-shadow: var(--inset), 0 0 0 2px var(--accent-soft);
+}
+
+.input input,
+.input textarea {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  outline: none;
+  resize: none;
+}
+
+.input input::placeholder,
+.input textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ---------------- tabs ---------------- */
+
+.tabs {
+  display: inline-flex;
+  gap: var(--s2);
+  padding: 6px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--inset-sm);
+}
+
+.tabs__tab {
+  padding: 7px var(--s4);
+  border-radius: var(--r-pill);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all var(--fast) var(--ease);
+}
+
+.tabs__tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabs__tab[data-active="true"] {
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+/* ---------------- stat ---------------- */
+
+.stat__value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.stat__unit {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 3px;
+}
+
+/* ---------------- empty / loading ---------------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s6) var(--s4);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.skel {
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    90deg,
+    var(--surface-deep) 25%,
+    var(--surface-raised) 50%,
+    var(--surface-deep) 75%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 1.4s var(--ease) infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
+}

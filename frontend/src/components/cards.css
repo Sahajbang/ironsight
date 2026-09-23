@@ -1,0 +1,289 @@
+/* ---------------- ETA ---------------- */
+
+.eta {
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  box-shadow: var(--inset);
+}
+
+.eta__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.eta__range {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.eta__num {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.eta__dash {
+  font-size: 1.4rem;
+  color: var(--text-muted);
+}
+
+.eta__unit {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 3px;
+}
+
+.eta__factors {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: var(--s3);
+}
+
+.eta__factors li {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.eta__arrow {
+  font-size: 0.6rem;
+}
+
+.eta__arrow--increase {
+  color: var(--warning);
+}
+.eta__arrow--decrease {
+  color: var(--ok);
+}
+
+.eta__impact {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eta__baseline {
+  margin-top: var(--s3);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ---------------- task card ---------------- */
+
+.tcard {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s4);
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  cursor: pointer;
+  transition: box-shadow var(--med) var(--ease), transform var(--med) var(--ease);
+}
+
+.tcard:hover {
+  box-shadow: var(--raise);
+  transform: translateY(-1px);
+}
+
+.tcard--active {
+  box-shadow: var(--inset), 0 0 0 2px var(--accent-soft);
+}
+
+.tcard__time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 62px;
+  padding-right: var(--s4);
+  box-shadow: 1px 0 0 var(--surface-deep);
+}
+
+.tcard__time strong {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tcard__time span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.tcard__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tcard__title {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.tcard__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.tcard__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tcard__req {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--caution-soft);
+  color: var(--caution);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.tcard__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: 2px;
+}
+
+.tcard__progress .meter {
+  flex: 1;
+}
+
+.tcard__progress span {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.tcard__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  padding: 9px var(--s4);
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(217, 164, 0, 0.32);
+  transition: background var(--fast) var(--ease);
+}
+
+.tcard__go:hover {
+  background: var(--accent-deep);
+}
+
+/* ---------------- alert ---------------- */
+
+.alert {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+}
+
+.alert__icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+  box-shadow: var(--inset-sm);
+  color: var(--text-muted);
+}
+
+.alert--critical .alert__icon {
+  color: var(--critical);
+  background: var(--critical-soft);
+}
+.alert--warning .alert__icon {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+.alert--caution .alert__icon {
+  color: var(--caution);
+  background: var(--caution-soft);
+}
+.alert--info .alert__icon {
+  color: var(--info);
+  background: var(--info-soft);
+}
+
+.alert__type {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.alert__age {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.alert__msg {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.alert__reason {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.alert__action {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.alert__action svg {
+  margin-top: 3px;
+  color: var(--ok);
+}
+
+.alert__source {
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--inset-sm);
+  font-size: 0.68rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  word-break: break-all;
+}

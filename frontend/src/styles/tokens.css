@@ -1,0 +1,79 @@
+/* Ironsight design tokens — industrial neumorphism.
+ *
+ * The whole material illusion rests on one rule: every surface is the SAME colour as the
+ * page, and only the dual shadow (light from top-left, dark from bottom-right) separates
+ * one element from another. Introducing a white card background or a border anywhere
+ * breaks it instantly, so those are never used.
+ *
+ * The accent is Cat yellow, and it is rationed: active states, progress fills and the one
+ * primary action per screen. Everything else stays achromatic so the yellow actually means
+ * something when it appears.
+ */
+
+:root {
+  /* ---- surface ---- */
+  --surface: #e0e5ec;
+  --surface-deep: #d1d9e6;
+  --surface-raised: #e8edf4;
+
+  /* ---- neumorphic shadow pair ---- */
+  --sh-light: rgba(255, 255, 255, 0.8);
+  --sh-dark: rgba(163, 177, 198, 0.6);
+
+  --raise-sm: -3px -3px 7px var(--sh-light), 3px 3px 7px var(--sh-dark);
+  --raise: -6px -6px 14px var(--sh-light), 6px 6px 14px var(--sh-dark);
+  --raise-lg: -10px -10px 26px var(--sh-light), 10px 10px 26px var(--sh-dark);
+  --inset-sm: inset -2px -2px 5px var(--sh-light), inset 2px 2px 5px var(--sh-dark);
+  --inset: inset -4px -4px 10px var(--sh-light), inset 4px 4px 10px var(--sh-dark);
+  --flat: -2px -2px 5px var(--sh-light), 2px 2px 5px var(--sh-dark);
+
+  /* ---- text ---- */
+  --text: #3f4956;
+  --text-secondary: #6b7684;
+  --text-muted: #98a2b3;
+
+  /* ---- accent (Cat yellow; dark label on top, the way Cat itself uses it) ---- */
+  --accent: #f5c518;
+  --accent-deep: #d9a400;
+  --accent-soft: rgba(245, 197, 24, 0.22);
+  --on-accent: #23262b;
+
+  /* ---- semantic severity ----
+   * Functional signals, never decoration. Always paired with an icon and a text label so
+   * colour is never the only channel carrying meaning (needed in a bright cab). */
+  --critical: #c0392b;
+  --warning: #cf6f12;
+  --caution: #a8830f;
+  --info: #5b7fa6;
+  --ok: #3f8f62;
+
+  --critical-soft: rgba(192, 57, 43, 0.14);
+  --warning-soft: rgba(207, 111, 18, 0.14);
+  --caution-soft: rgba(168, 131, 15, 0.14);
+  --info-soft: rgba(91, 127, 166, 0.14);
+  --ok-soft: rgba(63, 143, 98, 0.14);
+
+  /* ---- geometry ---- */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* ---- spacing (8px base) ---- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+
+  /* ---- motion ---- */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --fast: 140ms;
+  --med: 240ms;
+
+  --nav-w: 232px;
+  --topbar-h: 76px;
+}

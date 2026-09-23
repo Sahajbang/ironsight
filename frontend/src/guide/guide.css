@@ -1,0 +1,191 @@
+/* The guide overlay sits above the app but never intercepts input — pointer-events stay
+   off on the layer, and only the tooltip's own controls opt back in. That is what keeps
+   the operator from being trapped inside a guided sequence. */
+
+.guide-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+}
+
+.guide-ring {
+  position: fixed;
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 3px var(--accent), 0 0 0 9px var(--accent-soft), 0 10px 30px rgba(217, 164, 0, 0.28);
+  animation: guide-pulse 2s var(--ease) infinite;
+  pointer-events: none;
+}
+
+@keyframes guide-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--accent), 0 0 0 9px var(--accent-soft), 0 10px 30px rgba(217, 164, 0, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--accent), 0 0 0 15px rgba(245, 197, 24, 0.1), 0 10px 30px rgba(217, 164, 0, 0.18);
+  }
+}
+
+.guide-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 14px rgba(120, 133, 152, 0.35));
+}
+
+.guide-pointer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 8px rgba(120, 133, 152, 0.45));
+}
+
+/* ---------------- instruction card ---------------- */
+
+.guide-tip {
+  position: fixed;
+  width: 320px;
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--raise-lg);
+  pointer-events: auto;
+}
+
+.guide-tip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s2);
+}
+
+.guide-tip__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guide-tip__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  box-shadow: var(--flat);
+  transition: color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+.guide-tip__close:hover {
+  color: var(--text);
+  box-shadow: var(--raise-sm);
+}
+
+.guide-tip__text {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.guide-tip__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--s4);
+}
+
+.guide-tip__step {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.guide-tip__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 14px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(217, 164, 0, 0.35);
+}
+
+.guide-tip__next:hover {
+  background: var(--accent-deep);
+}
+
+/* ---------------- the toggle button ---------------- */
+
+.guide-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--raise);
+  color: var(--text-muted);
+  transition: color var(--med) var(--ease), box-shadow var(--med) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.guide-toggle:hover {
+  color: var(--text-secondary);
+  transform: translateY(-1px);
+}
+
+.guide-toggle[data-on="true"] {
+  color: var(--accent-deep);
+  box-shadow: var(--inset), 0 0 0 2px var(--accent-soft);
+}
+
+.guide-toggle[data-on="true"]:hover {
+  color: var(--accent-deep);
+}
+
+/* A small yellow lamp, like a beacon on the cab roof, so the on/off state is readable
+   without relying on the icon colour alone. */
+.guide-toggle__lamp {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface-deep);
+  box-shadow: var(--inset-sm);
+  transition: background var(--med) var(--ease), box-shadow var(--med) var(--ease);
+}
+
+.guide-toggle[data-on="true"] .guide-toggle__lamp {
+  background: var(--accent);
+  box-shadow: 0 0 8px 2px rgba(245, 197, 24, 0.75);
+  animation: beacon 1.6s var(--ease) infinite;
+}
+
+@keyframes beacon {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}

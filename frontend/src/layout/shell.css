@@ -1,0 +1,352 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------------- nav ---------------- */
+
+.shell__nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--nav-w);
+  height: 100vh;
+  flex-shrink: 0;
+  padding: var(--s5) var(--s4);
+  gap: var(--s5);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 0 var(--s2);
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--raise-sm);
+  flex-shrink: 0;
+}
+
+.brand__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.brand__sub {
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  flex: 1;
+}
+
+.nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 11px var(--s3);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+.nav__item:hover {
+  color: var(--text-secondary);
+  box-shadow: var(--flat);
+}
+
+/* Active nav is pressed INTO the surface — the selected item is the one you are standing
+   in, so it reads as recessed rather than lifted. */
+.nav__item.active {
+  color: var(--accent-deep);
+  font-weight: 700;
+  box-shadow: var(--inset-sm);
+}
+
+.nav__count {
+  margin-left: auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--caution);
+  background: var(--caution-soft);
+}
+
+.nav__count--critical {
+  color: var(--critical);
+  background: var(--critical-soft);
+}
+.nav__count--warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.nav__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 var(--s2);
+}
+
+.opswitch {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 0 var(--s3);
+  height: 44px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--raise-sm);
+  color: var(--text-muted);
+}
+
+.opswitch select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+/* ---------------- topbar ---------------- */
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: var(--s5) var(--s6) var(--s4);
+}
+
+.topbar__title {
+  font-size: 1.32rem;
+}
+
+.topbar__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-left: auto;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--flat);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.chip--ok {
+  color: var(--ok);
+}
+
+.content {
+  flex: 1;
+  padding: 0 var(--s6) var(--s7);
+}
+
+/* ---------------- search ---------------- */
+
+.search {
+  position: relative;
+  flex: 1;
+  max-width: 460px;
+}
+
+.search__input {
+  min-height: 46px;
+}
+
+.search__spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-deep);
+  border-top-color: var(--accent-deep);
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.search__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 800;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--raise-lg);
+}
+
+.search__answer {
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-sm);
+  box-shadow: var(--inset-sm);
+  margin-bottom: var(--s4);
+}
+
+.search__answer p {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  margin: 4px 0;
+}
+
+.search__src {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.search__none {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: var(--s3) 0;
+}
+
+.search__group {
+  margin-bottom: var(--s3);
+}
+
+.search__group > .label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.search__hit {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: 9px var(--s3);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.search__hit:hover {
+  box-shadow: var(--flat);
+}
+
+.search__hittitle {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.search__hitsnip {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.search__why {
+  margin-top: 2px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--accent-deep);
+}
+
+.search__dur {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---------------- responsive ---------------- */
+
+@media (max-width: 1080px) {
+  .topbar__meta {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .shell {
+    flex-direction: column;
+  }
+  .shell__nav {
+    position: static;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s4);
+    overflow-x: auto;
+    padding: var(--s4);
+  }
+  .nav {
+    flex-direction: row;
+    flex: initial;
+  }
+  .nav__item span {
+    display: none;
+  }
+  .nav__foot {
+    margin-left: auto;
+  }
+  .nav__foot .label {
+    display: none;
+  }
+  .brand__sub,
+  .brand__name {
+    display: none;
+  }
+  .topbar {
+    flex-wrap: wrap;
+    padding: var(--s4);
+  }
+  .content {
+    padding: 0 var(--s4) var(--s7);
+  }
+}
