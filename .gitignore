@@ -1,0 +1,23 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/app.db
+backend/*.db
+backend/models/*.joblib
+backend/.env
+backend/.pytest_cache/
+backend/*.log
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Ignore the source PRD docs (kept locally, not part of the product)
+IGNORE-FILES/
